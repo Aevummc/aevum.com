@@ -5,6 +5,9 @@ Requires: pyCraft (from ammaraskar/pyCraft) and mcstatus
 """
 
 import argparse
+import os
+import threading
+from flask import Flask, jsonify
 import socket
 import time
 import sys
@@ -29,7 +32,7 @@ except Exception:
 # Top-level configurable variables
 MC_HOST = "aevummc.mcsh.io"
 MC_PORT = 25565
-BOT_USERNAME = "aevumbot"
+BOT_USERNAME = "AevumBot"
 BOT_SKIN = None  # Set to a skin identifier or None
 REGISTER_PASSWORD = "password"
 AUTO_REGISTER = True
@@ -131,6 +134,21 @@ def run_bot(host, port, username, poll_interval=5):
             time.sleep(poll_interval)
 
 
+def run_as_web_and_bot(host, port, username, poll_interval=5):
+    # Start the reconnecting bot in a daemon thread and run a simple Flask app
+    t = threading.Thread(target=run_bot, args=(host, port, username, poll_interval), daemon=True)
+    t.start()
+
+    app = Flask(__name__)
+
+    @app.route('/health')
+    def health():
+        return jsonify(status='ok')
+
+    port_env = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port_env)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Simple reconnecting Minecraft bot (offline-mode)")
     parser.add_argument("--host", default=MC_HOST)
@@ -144,6 +162,8 @@ def main():
     parser.add_argument("--no-afk", dest="auto_afk", action="store_false", default=AUTO_AFK,
                         help="Disable automatic /afk on join")
     parser.add_argument("--poll", type=int, default=5, help="Seconds between server checks when offline")
+    parser.add_argument("--web", dest="web", action="store_true", default=False,
+                        help="Run as a web service and expose /health (for platforms like Render)")
     args = parser.parse_args()
 
     # Apply CLI overrides to top-level config
@@ -155,7 +175,10 @@ def main():
     BOT_SKIN = args.skin
 
     print(f"Starting bot for {args.host}:{args.port} as {args.username}")
-    run_bot(args.host, args.port, args.username, poll_interval=args.poll)
+    if args.web:
+        run_as_web_and_bot(args.host, args.port, args.username, poll_interval=args.poll)
+    else:
+        run_bot(args.host, args.port, args.username, poll_interval=args.poll)
 
 
 if __name__ == "__main__":
