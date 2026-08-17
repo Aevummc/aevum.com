@@ -4,7 +4,6 @@ Reconnecting Minecraft offline-mode bot.
 Requires: pyCraft (from ammaraskar/pyCraft) and mcstatus
 """
 
-import argparse
 import os
 import threading
 from flask import Flask, jsonify
@@ -150,35 +149,12 @@ def run_as_web_and_bot(host, port, username, poll_interval=5):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Simple reconnecting Minecraft bot (offline-mode)")
-    parser.add_argument("--host", default=MC_HOST)
-    parser.add_argument("--port", type=int, default=MC_PORT)
-    parser.add_argument("--username", default=BOT_USERNAME)
-    parser.add_argument("--skin", default=BOT_SKIN, help="Optional skin identifier to send to the server")
-    parser.add_argument("--register-password", dest="register_password", default=None,
-                        help="Password to use for /register (overrides REGISTER_PASSWORD)")
-    parser.add_argument("--no-register", dest="auto_register", action="store_false", default=AUTO_REGISTER,
-                        help="Disable automatic /register on join")
-    parser.add_argument("--no-afk", dest="auto_afk", action="store_false", default=AUTO_AFK,
-                        help="Disable automatic /afk on join")
-    parser.add_argument("--poll", type=int, default=5, help="Seconds between server checks when offline")
-    parser.add_argument("--web", dest="web", action="store_true", default=False,
-                        help="Run as a web service and expose /health (for platforms like Render)")
-    args = parser.parse_args()
-
-    # Apply CLI overrides to top-level config
-    global REGISTER_PASSWORD, AUTO_REGISTER, AUTO_AFK, BOT_SKIN
-    if args.register_password is not None:
-        REGISTER_PASSWORD = args.register_password
-    AUTO_REGISTER = args.auto_register
-    AUTO_AFK = args.auto_afk
-    BOT_SKIN = args.skin
-
-    print(f"Starting bot for {args.host}:{args.port} as {args.username}")
-    if args.web:
-        run_as_web_and_bot(args.host, args.port, args.username, poll_interval=args.poll)
-    else:
-        run_bot(args.host, args.port, args.username, poll_interval=args.poll)
+    # Everything is hardcoded above (MC_HOST, MC_PORT, BOT_USERNAME,
+    # REGISTER_PASSWORD, AUTO_REGISTER, AUTO_AFK, BOT_SKIN) — no CLI flags,
+    # no environment variables to configure. Just edit the constants at the
+    # top of this file and redeploy.
+    print(f"Starting bot for {MC_HOST}:{MC_PORT} as {BOT_USERNAME}")
+    run_as_web_and_bot(MC_HOST, MC_PORT, BOT_USERNAME, poll_interval=5)
 
 
 if __name__ == "__main__":
