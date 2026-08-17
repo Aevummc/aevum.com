@@ -37,7 +37,7 @@ except Exception:
 # Top-level configurable variables
 MC_HOST = "aevummc.mcsh.io"
 MC_PORT = 25565
-BOT_USERNAME = "aevumbot"
+BOT_USERNAME = "AevumBot"
 BOT_SKIN = None  # Set to a skin identifier or None
 REGISTER_PASSWORD = "password"
 AUTO_REGISTER = True
@@ -81,24 +81,35 @@ def run_bot(host, port, username, poll_interval=5):
         print("Server appears online — attempting to connect...")
 
         try:
+            disconnect_event = threading.Event()
+
             def handle_exception(exception, exc_info):
                 # Log cleanly instead of letting pyCraft re-raise inside its
                 # networking thread (which dumps a raw traceback to stderr).
                 print(f"Networking error: {exception}")
+                disconnect_event.set()
+
+            def handle_exit():
+                # Called by pyCraft when the connection ends normally
+                # (server closed it, kick, etc.) without an exception.
+                disconnect_event.set()
 
             try:
                 if BOT_SKIN:
                     conn = Connection(host, port, username=username, skin=BOT_SKIN,
                                        initial_version=MC_PROTOCOL_VERSION,
-                                       handle_exception=handle_exception)
+                                       handle_exception=handle_exception,
+                                       handle_exit=handle_exit)
                 else:
                     conn = Connection(host, port, username=username,
                                        initial_version=MC_PROTOCOL_VERSION,
-                                       handle_exception=handle_exception)
+                                       handle_exception=handle_exception,
+                                       handle_exit=handle_exit)
             except TypeError:
                 conn = Connection(host, port, username=username,
                                    initial_version=MC_PROTOCOL_VERSION,
-                                   handle_exception=handle_exception)
+                                   handle_exception=handle_exception,
+                                   handle_exit=handle_exit)
 
             def send_chat(conn, message):
                 if ServerChatPacket is None:
@@ -149,6 +160,15 @@ def run_bot(host, port, username, poll_interval=5):
             except Exception as e:
                 print("Connection error or disconnected:", e)
                 traceback.print_exc()
+                disconnect_event.set()
+
+            # conn.connect() is non-blocking — it starts a background
+            # networking thread and returns right away, well before login
+            # even finishes. Block here until that thread actually reports
+            # the connection ending (via handle_exit or handle_exception),
+            # so we don't spawn duplicate connections under the same
+            # username while the first one is still logging in.
+            disconnect_event.wait()
 
             print("Disconnected — will poll and reconnect when server is back.")
 
