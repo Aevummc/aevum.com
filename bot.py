@@ -153,7 +153,35 @@ def run_bot(host, port, username, poll_interval=5):
                 except Exception as e:
                     print("Error sending join commands:", e)
 
+            def handle_disconnect(packet):
+                # Prints the server's actual kick/disconnect reason (e.g. a
+                # login-plugin timeout, duplicate-login kick, etc.) instead
+                # of leaving us guessing why the connection ended.
+                reason = getattr(packet, 'json_data', None) \
+                    or getattr(packet, 'reason', None) \
+                    or str(packet)
+                print(f"Server disconnected us: {reason}")
+
+            def handle_chat(packet):
+                # Many login/register plugins reply in chat rather than
+                # kicking, so this surfaces messages like "wrong password"
+                # or "already registered" that we'd otherwise never see.
+                text = getattr(packet, 'json_data', None) or str(packet)
+                print(f"Server message: {text}")
+
             conn.register_packet_listener(handle_join, clientbound.play.JoinGamePacket)
+            try:
+                conn.register_packet_listener(handle_disconnect, clientbound.play.DisconnectPacket)
+            except Exception:
+                pass
+            try:
+                conn.register_packet_listener(handle_disconnect, clientbound.login.DisconnectPacket)
+            except Exception:
+                pass
+            try:
+                conn.register_packet_listener(handle_chat, clientbound.play.ChatMessagePacket)
+            except Exception:
+                pass
 
             try:
                 conn.connect()
