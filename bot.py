@@ -37,7 +37,7 @@ except Exception:
 # Top-level configurable variables
 MC_HOST = "aevummc.mcsh.io"
 MC_PORT = 25565
-BOT_USERNAME = "aevumbot1"
+BOT_USERNAME = "aevumbot"
 BOT_SKIN = None  # Set to a skin identifier or None
 REGISTER_PASSWORD = "password"
 AUTO_REGISTER = True
