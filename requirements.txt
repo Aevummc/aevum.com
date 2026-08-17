@@ -1,2 +1,3 @@
 git+https://github.com/ammaraskar/pyCraft.git@master#egg=pyCraft
 mcstatus
+Flask
