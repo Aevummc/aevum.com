@@ -1,7 +1,7 @@
 """
 Reconnecting Minecraft offline-mode bot.
 
-Requires: pyCraft (from ammaraskar/pyCraft) and mcstatus
+Requires: pyCraft (from ammaraskar/pyCraft) and Flask
 """
 
 import os
@@ -11,8 +11,6 @@ import socket
 import time
 import sys
 import traceback
-
-from mcstatus import MinecraftServer
 
 try:
     from minecraft.networking.connection import Connection
