@@ -14,7 +14,7 @@ const express = require("express");
 // ---- Hardcoded configuration ----
 const MC_HOST = "aevummc.mcsh.io";
 const MC_PORT = 25565;
-const BOT_USERNAME = "AevumBot";
+const BOT_USERNAME = "aevumbot";
 const REGISTER_PASSWORD = "password";
 const AUTO_REGISTER = true;
 const AUTO_LOGIN = true;
