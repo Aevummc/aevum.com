@@ -37,10 +37,11 @@ except Exception:
 # Top-level configurable variables
 MC_HOST = "aevummc.mcsh.io"
 MC_PORT = 25565
-BOT_USERNAME = "aevumbot"
+BOT_USERNAME = "aevumbot1"
 BOT_SKIN = None  # Set to a skin identifier or None
 REGISTER_PASSWORD = "password"
 AUTO_REGISTER = True
+AUTO_LOGIN = True
 AUTO_AFK = True
 # pyCraft (the library this bot uses) only understands protocol packets up
 # through Minecraft 1.18.1 — it doesn't know 1.21.x packet formats at all.
@@ -139,19 +140,37 @@ def run_bot(host, port, username, poll_interval=5):
 
             def handle_join(packet):
                 print("Joined the server; sending auto-commands if enabled.")
-                try:
-                    if AUTO_REGISTER and REGISTER_PASSWORD:
-                        pw = REGISTER_PASSWORD
-                        if ' ' in pw:
-                            pw_repr = f'"{pw}"'
-                        else:
-                            pw_repr = pw
-                        send_chat(conn, f"/register {pw_repr} {pw_repr}")
-                        time.sleep(0.15)
-                    if AUTO_AFK:
-                        send_chat(conn, "/afk")
-                except Exception as e:
-                    print("Error sending join commands:", e)
+
+                def send_commands_delayed():
+                    try:
+                        # The server kicked us with "You used a command too
+                        # fast!" when commands were sent back to back right
+                        # on join — the anti-spam/login plugin has a
+                        # cooldown. Wait a few seconds after spawning before
+                        # sending anything, and space each command out.
+                        time.sleep(3)
+                        if AUTO_REGISTER and REGISTER_PASSWORD:
+                            pw = REGISTER_PASSWORD
+                            if ' ' in pw:
+                                pw_repr = f'"{pw}"'
+                            else:
+                                pw_repr = pw
+                            send_chat(conn, f"/register {pw_repr} {pw_repr}")
+                            time.sleep(3)
+                        if AUTO_LOGIN and REGISTER_PASSWORD:
+                            pw = REGISTER_PASSWORD
+                            pw_repr = f'"{pw}"' if ' ' in pw else pw
+                            send_chat(conn, f"/login {pw_repr}")
+                            time.sleep(3)
+                        if AUTO_AFK:
+                            send_chat(conn, "/afk")
+                    except Exception as e:
+                        print("Error sending join commands:", e)
+
+                # Run on its own thread so we don't block the packet
+                # listener (which runs on pyCraft's networking thread)
+                # while sleeping.
+                threading.Thread(target=send_commands_delayed, daemon=True).start()
 
             def handle_disconnect(packet):
                 # Prints the server's actual kick/disconnect reason (e.g. a
