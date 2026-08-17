@@ -52,9 +52,13 @@ def is_server_online(host, port, timeout=3):
 
 
 def wait_for_server(host, port, poll_interval=5):
+    attempt = 0
     while True:
         if is_server_online(host, port):
             return
+        attempt += 1
+        if attempt == 1 or attempt % 6 == 0:  # log immediately, then every ~30s
+            print(f"Still waiting for {host}:{port} to come online...")
         time.sleep(poll_interval)
 
 
