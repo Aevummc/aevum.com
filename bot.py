@@ -34,6 +34,13 @@ BOT_SKIN = None  # Set to a skin identifier or None
 REGISTER_PASSWORD = "password"
 AUTO_REGISTER = True
 AUTO_AFK = True
+# pyCraft (the library this bot uses) only understands protocol packets up
+# through Minecraft 1.18.1 — it doesn't know 1.21.x packet formats at all.
+# Your server is 1.21.11, but since you have ViaBackwards installed
+# alongside ViaVersion, the server will transparently translate pyCraft's
+# 1.18.1 packets up to 1.21.11 for you. So this must stay "1.18.1" — do NOT
+# change it to your server's real version, or the handshake will fail.
+MC_PROTOCOL_VERSION = "1.18.1"
 
 
 def is_server_online(host, port, timeout=3):
@@ -62,13 +69,24 @@ def run_bot(host, port, username, poll_interval=5):
         print("Server appears online — attempting to connect...")
 
         try:
+            def handle_exception(exception, exc_info):
+                # Log cleanly instead of letting pyCraft re-raise inside its
+                # networking thread (which dumps a raw traceback to stderr).
+                print(f"Networking error: {exception}")
+
             try:
                 if BOT_SKIN:
-                    conn = Connection(host, port, username=username, skin=BOT_SKIN)
+                    conn = Connection(host, port, username=username, skin=BOT_SKIN,
+                                       initial_version=MC_PROTOCOL_VERSION,
+                                       handle_exception=handle_exception)
                 else:
-                    conn = Connection(host, port, username=username)
+                    conn = Connection(host, port, username=username,
+                                       initial_version=MC_PROTOCOL_VERSION,
+                                       handle_exception=handle_exception)
             except TypeError:
-                conn = Connection(host, port, username=username)
+                conn = Connection(host, port, username=username,
+                                   initial_version=MC_PROTOCOL_VERSION,
+                                   handle_exception=handle_exception)
 
             def send_chat(conn, message):
                 if ServerChatPacket is None:
@@ -125,6 +143,10 @@ def run_bot(host, port, username, poll_interval=5):
         except Exception as e:
             print("Failed to connect:", e)
             traceback.print_exc()
+
+        # Always pause before the next attempt so a fast-failing connection
+        # (e.g. protocol mismatch, instant kick) can't spin in a tight loop.
+        time.sleep(poll_interval)
 
         # Poll server until it becomes available again
         while not is_server_online(host, port):
