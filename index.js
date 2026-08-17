@@ -14,7 +14,7 @@ const express = require("express");
 // ---- Hardcoded configuration ----
 const MC_HOST = "aevummc.mcsh.io";
 const MC_PORT = 25565;
-const BOT_USERNAME = "aevumbot";
+const BOT_USERNAME = "AevumBot";
 const REGISTER_PASSWORD = "password";
 const AUTO_REGISTER = true;
 const AUTO_LOGIN = true;
@@ -36,7 +36,11 @@ function createBot() {
     port: MC_PORT,
     username: BOT_USERNAME,
     auth: "offline",
-    version: false, // auto-detect the server's real protocol version (1.21.x) — no ViaBackwards needed
+    // The server's ping response reports a non-standard version string
+    // (seen: "26.1.2", likely from the host's front-end proxy), which
+    // breaks mineflayer's auto-detection ("version: false"). Hardcoding
+    // the real Minecraft version here skips that broken detection step.
+    version: "1.21.11",
   });
 
   bot.on("login", () => {
